@@ -1,0 +1,71 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Panamá Drive</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#10151c;color:white;font-family:Arial;text-align:center}header{padding:12px;background:#182331}h2{margin:4px;color:#58d8ff}canvas{display:block;width:100%;height:48vh;background:#456b45;touch-action:none}button,select,input{padding:10px;border:0;border-radius:8px;margin:4px;background:#26394c;color:white;font-size:15px}button:active{background:#087eaa}.panel{padding:8px;background:#182331}.controls{display:flex;justify-content:center;gap:10px}.controls button{font-size:24px;min-width:65px}.small{font-size:12px;color:#b9c8d8}
+</style>
+</head>
+<body>
+<header><h2>🇵🇦 PANAMÁ DRIVE</h2><div>Ciudad • Modo libre</div></header>
+<canvas id="game"></canvas>
+<div class="panel">
+<div>
+<select id="car"><option value="Lancer">Mitsubishi Lancer</option><option value="Civic">Honda Civic</option><option value="Supra">Toyota Supra</option><option value="Pickup">Pickup 4x4</option><option value="SUV">SUV</option></select>
+<select id="paint"><option value="#e53935">Rojo</option><option value="#eeeeee">Blanco</option><option value="#168cff">Azul</option><option value="#111111">Negro</option><option value="#ffcc00">Amarillo</option></select>
+</div>
+<div class="small">Turbo: <span id="tv">0</span>%</div><input id="turbo" type="range" min="0" max="100" value="0">
+<div class="small">Escape: <span id="ev">Normal</span></div>
+<select id="exhaust"><option>Normal</option><option>Deportivo</option><option>Tubería directa</option></select>
+<div class="small">Suspensión: <span id="sv">Media</span></div><input id="susp" type="range" min="1" max="3" value="2">
+<div class="controls">
+<button id="left">⬅️</button><button id="gas">🟢 GAS</button><button id="brake">🛑</button><button id="right">➡️</button>
+</div>
+<div>Velocidad: <b id="speed">0</b> km/h</div>
+<button id="reset">🔄 Reiniciar viaje</button>
+<p class="small">Prototipo de conducción. Próximas mejoras: taller 3D, más autos y mapa ampliado.</p>
+</div>
+<script>
+const c=document.getElementById('game'),x=c.getContext('2d');
+let W=0,H=0,pos=0,steer=0,gas=0,brake=0,speed=0,dist=0;
+function resize(){W=c.width=c.clientWidth*devicePixelRatio;H=c.height=c.clientHeight*devicePixelRatio}
+onresize=resize;resize();
+function hold(id,fn){let b=document.getElementById(id);b.onpointerdown=e=>{e.preventDefault();fn(true)};b.onpointerup=b.onpointercancel=b.onpointerleave=()=>fn(false)}
+hold('left',v=>steer=v?-1:0);hold('right',v=>steer=v?1:0);hold('gas',v=>gas=v?1:0);hold('brake',v=>brake=v?1:0);
+turbo.oninput=()=>tv.textContent=turbo.value;
+exhaust.onchange=()=>ev.textContent=exhaust.value;
+susp.oninput=()=>sv.textContent=['','Baja','Media','Alta'][susp.value];
+reset.onclick=()=>{pos=dist=speed=0};
+function draw(){
+let w=W,h=H;x.clearRect(0,0,w,h);
+x.fillStyle='#537b48';x.fillRect(0,0,w,h);
+let road=w*.57,center=w/2+pos*w*.24;
+x.fillStyle='#777b80';x.fillRect(center-road/2,0,road,h);
+x.fillStyle='#eeeecc';x.fillRect(center-road/2,0,road*.012,h);x.fillRect(center+road/2-road*.012,0,road*.012,h);
+x.strokeStyle='#fff1b2';x.lineWidth=w*.009;x.setLineDash([h*.07,h*.06]);x.lineDashOffset=-dist% (h*.13);x.beginPath();x.moveTo(center,h);x.lineTo(center,0);x.stroke();x.setLineDash([]);
+for(let i=0;i<9;i++){let yy=((i*h/8+dist*.7)%h);let side=i%2? -1:1;let xx=center+side*(road*.65+Math.sin(i*8)*w*.025);x.fillStyle='#b9c5ce';x.fillRect(xx,yy,w*.055,h*.065);x.fillStyle='#5f7182';x.fillRect(xx+w*.008,yy+h*.012,w*.039,h*.052)}
+let cw=w*.15,ch=h*.22,cy=h*.68,cx=center-cw/2;
+x.fillStyle='#171a20';x.fillRect(cx,cy,cw,ch);
+x.fillStyle=paint.value;x.fillRect(cx+cw*.12,cy+ch*.05,cw*.76,ch*.9);
+x.fillStyle='#9dd9ee';x.fillRect(cx+cw*.2,cy+ch*.2,cw*.6,ch*.25);
+x.fillStyle='#18202a';x.fillRect(cx+cw*.2,cy+ch*.57,cw*.6,ch*.17);
+x.fillStyle='#fff';x.fillRect(cx+cw*.12,cy+ch*.04,cw*.18,ch*.05);x.fillRect(cx+cw*.7,cy+ch*.04,cw*.18,ch*.05);
+x.fillStyle='#111';x.fillRect(cx-cw*.08,cy+ch*.2,cw*.12,ch*.23);x.fillRect(cx+cw*.96,cy+ch*.2,cw*.12,ch*.23);x.fillRect(cx-cw*.08,cy+ch*.65,cw*.12,ch*.23);x.fillRect(cx+cw*.96,cy+ch*.65,cw*.12,ch*.23);
+x.fillStyle='white';x.font=`bold ${w*.035}px Arial`;x.fillText(car.value,w*.03,h*.09);
+x.fillText('CIUDAD DE PANAMÁ',w*.03,h*.15);
+x.fillText('TURBO '+turbo.value+'%',w*.03,h*.21);
+}
+function loop(){
+let power=gas*(1+Number(turbo.value)/100*.7);
+speed+=power*.55-brake*1.1-.025;if(speed<0)speed=0;if(speed>260)speed=260;
+pos+=steer*.006*(speed/100+0.2);pos=Math.max(-1,Math.min(1,pos));
+dist+=speed*.06;
+document.getElementById('speed').textContent=Math.round(speed);
+draw();requestAnimationFrame(loop)
+}
+loop();
+</script>
+</body></html>
